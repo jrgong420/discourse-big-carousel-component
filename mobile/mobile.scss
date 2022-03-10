@@ -1,0 +1,10 @@
+.custom-big-carousel {
+  .custom-big-carousel-content {
+    padding: 2em 1em;
+  }
+
+  .custom-big-carousel-next,
+  .custom-big-carousel-prev {
+    display: none !important;
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "about_url": null,
+  "license_url": null,
+  "assets": {
+    "tiny_slider": "assets/tiny-slider.js"
+  },
+  "name": "Big Carousel",
+  "component": true
+}
