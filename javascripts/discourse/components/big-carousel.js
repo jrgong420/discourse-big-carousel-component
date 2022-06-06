@@ -1,10 +1,10 @@
+/* global tns */
 import Component from "@ember/component";
-import { computed } from "@ember/object";
+import { computed, set } from "@ember/object";
 import loadScript from "discourse/lib/load-script";
 import discourseComputed from "discourse-common/utils/decorators";
 import { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
-import { set } from "@ember/object";
 import { Promise } from "rsvp";
 
 export default Component.extend({
@@ -54,7 +54,7 @@ export default Component.extend({
           this.set("bigUserSlides", bigUserSlides);
           loadScript(settings.theme_uploads.tiny_slider).then(() => {
             // slider script
-            var slider = tns({
+            tns({
               container: ".custom-big-carousel-slides",
               items: 1,
               controls: true,
@@ -76,7 +76,7 @@ export default Component.extend({
 
   @discourseComputed("router.currentRouteName")
   shouldDisplay(currentRouteName) {
-    return currentRouteName == "discovery.categories";
+    return currentRouteName === "discovery.categories";
   },
 
   init() {
