@@ -15,15 +15,11 @@ export default Component.extend({
   isLoading: true,
 
   ensureSlider() {
-    let bigStaticSlides = [];
-
     if (this.shouldDisplay && this.bigSlides.length > 1) {
       // set up static populated slides
-      this.bigSlides.forEach((slide) => {
-        if (slide.slide_type === "slide") {
-          bigStaticSlides.push(slide);
-        }
-      });
+
+      const bigStaticSlides = this.bigSlides.filterBy("slide_type", "slide");
+      const staticSlides = Promise.all(this.bigSlides.filterBy("slide_type", "slide"));
 
       let bigUserSlides = [];
 
@@ -49,9 +45,10 @@ export default Component.extend({
         })
       );
 
-      Promise.all([userSetup, userActivity])
+      Promise.all([staticSlides, userSetup, userActivity])
         .then(() => {
           this.set("bigUserSlides", bigUserSlides);
+          this.set("bigStaticSlides", bigStaticSlides);
           loadScript(settings.theme_uploads.tiny_slider).then(() => {
             // slider script
             tns({
@@ -70,8 +67,6 @@ export default Component.extend({
           this.set("isLoading", false);
         });
     }
-
-    this.set("bigStaticSlides", bigStaticSlides);
   },
 
   @discourseComputed("router.currentRouteName")
