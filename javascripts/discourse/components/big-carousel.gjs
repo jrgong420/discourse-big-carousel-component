@@ -24,6 +24,7 @@ export default class BigCarousel extends Component {
   isLoading = true;
   sliderInstance = null;
   @tracked carouselClosed = this.cookieClosed || false;
+  @tracked componentElement = null;
 
   // Helper function to determine if a link is external
   isExternalLink(url) {
@@ -131,6 +132,13 @@ export default class BigCarousel extends Component {
     return classes;
   }
 
+  get carouselId() {
+    if (!this._carouselId) {
+      this._carouselId = `carousel-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    return this._carouselId;
+  }
+
   @action
   closeCarousel() {
     this.carouselClosed = true;
@@ -230,47 +238,10 @@ export default class BigCarousel extends Component {
           this.set("bigUserSlides", bigUserSlides);
           this.set("bigStaticSlides", bigStaticSlides);
           loadScript(settings.theme_uploads.tiny_slider).then(() => {
-            // Use a small delay to ensure DOM is fully rendered
+            // Use a longer delay and multiple attempts to ensure DOM is fully rendered
             this._sliderTimeout = setTimeout(() => {
-              // Check if component is still alive
-              if (this.isDestroyed || this.isDestroying) {
-                return;
-              }
-
-              // Validate DOM elements exist before initializing slider
-              const container = document.querySelector(".custom-big-carousel-slides");
-              const prevButton = document.querySelector(".custom-big-carousel-prev");
-              const nextButton = document.querySelector(".custom-big-carousel-next");
-              const navContainer = document.querySelector(".custom-big-carousel-nav");
-
-              if (!container) {
-                console.warn('Carousel container not found, skipping slider initialization');
-                return;
-              }
-
-              // Additional check to ensure container has content
-              if (container.children.length === 0) {
-                console.warn('Carousel container is empty, skipping slider initialization');
-                return;
-              }
-
-              try {
-                // slider script
-                this.sliderInstance = tns({
-                  container: ".custom-big-carousel-slides",
-                  items: 1,
-                  controls: true,
-                  autoplay: settings.big_carousel_autoplay,
-                  speed: settings.big_carousel_speed,
-                  prevButton: ".custom-big-carousel-prev",
-                  nextButton: ".custom-big-carousel-next",
-                  navContainer: ".custom-big-carousel-nav",
-                  preventScrollOnTouch: "force",
-                });
-              } catch (error) {
-                console.error('Error initializing carousel slider:', error);
-              }
-            }, 100);
+              this.initializeSliderWithRetry();
+            }, 200);
           }).catch((error) => {
             console.error('Error loading tiny-slider script:', error);
           });
@@ -278,6 +249,118 @@ export default class BigCarousel extends Component {
         .finally(() => {
           this.set("isLoading", false);
         });
+    }
+  }
+
+  initializeSliderWithRetry(attempt = 1, maxAttempts = 3) {
+    // Check if component is still alive
+    if (this.isDestroyed || this.isDestroying) {
+      return;
+    }
+
+    // Find the carousel container using the unique carousel ID
+    const carouselId = this.carouselId;
+    let container = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-slides`);
+    let prevButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-prev`);
+    let nextButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-next`);
+    let navContainer = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-nav`);
+
+    // If not found with unique ID, fall back to finding within the carousel container
+    if (!container) {
+      const carouselContainer = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel`);
+      if (carouselContainer) {
+        container = carouselContainer.querySelector(".custom-big-carousel-slides");
+        prevButton = carouselContainer.querySelector(".custom-big-carousel-prev");
+        nextButton = carouselContainer.querySelector(".custom-big-carousel-next");
+        navContainer = carouselContainer.querySelector(".custom-big-carousel-nav");
+      }
+    }
+
+    if (!container) {
+      if (attempt < maxAttempts) {
+        console.warn(`Carousel container not found, retrying (${attempt}/${maxAttempts})...`);
+        this._sliderTimeout = setTimeout(() => {
+          this.initializeSliderWithRetry(attempt + 1, maxAttempts);
+        }, 200 * attempt);
+        return;
+      } else {
+        console.warn('Carousel container not found after all retries, skipping slider initialization');
+        return;
+      }
+    }
+
+    // Additional check to ensure container has content
+    if (container.children.length === 0) {
+      if (attempt < maxAttempts) {
+        console.warn(`Carousel container is empty, retrying (${attempt}/${maxAttempts})...`);
+        this._sliderTimeout = setTimeout(() => {
+          this.initializeSliderWithRetry(attempt + 1, maxAttempts);
+        }, 200 * attempt);
+        return;
+      } else {
+        console.warn('Carousel container is empty after all retries, skipping slider initialization');
+        return;
+      }
+    }
+
+    // Validate that all slides have proper structure
+    const slides = container.querySelectorAll('.custom-big-carousel-slide');
+    if (slides.length === 0) {
+      console.warn('No carousel slides found, skipping slider initialization');
+      return;
+    }
+
+    // Check if slides are properly rendered (have content)
+    let hasValidSlides = false;
+    slides.forEach(slide => {
+      if (slide.offsetHeight > 0 && slide.offsetWidth > 0) {
+        hasValidSlides = true;
+      }
+    });
+
+    if (!hasValidSlides && attempt < maxAttempts) {
+      console.warn(`Slides not properly rendered, retrying (${attempt}/${maxAttempts})...`);
+      this._sliderTimeout = setTimeout(() => {
+        this.initializeSliderWithRetry(attempt + 1, maxAttempts);
+      }, 200 * attempt);
+      return;
+    }
+
+    try {
+      // Validate all elements exist and are properly rendered
+      if (!container || !prevButton || !nextButton || !navContainer) {
+        throw new Error('Required carousel elements not found');
+      }
+
+      // Double-check that elements are visible and have dimensions
+      if (container.offsetHeight === 0 || container.offsetWidth === 0) {
+        throw new Error('Carousel container has no dimensions');
+      }
+
+      // Initialize slider with element references instead of selectors
+      this.sliderInstance = tns({
+        container: container,
+        items: 1,
+        controls: true,
+        autoplay: settings.big_carousel_autoplay,
+        speed: settings.big_carousel_speed,
+        prevButton: prevButton,
+        nextButton: nextButton,
+        navContainer: navContainer,
+        preventScrollOnTouch: "force",
+      });
+
+      console.log('Carousel slider initialized successfully');
+    } catch (error) {
+      console.error('Error initializing carousel slider:', error);
+
+      // If initialization fails, try one more time with a longer delay
+      if (attempt < maxAttempts) {
+        console.warn(`Slider initialization failed, retrying (${attempt}/${maxAttempts})...`);
+        this._sliderTimeout = setTimeout(() => {
+          this.initializeSliderWithRetry(attempt + 1, maxAttempts);
+        }, 500 * attempt);
+      }
     }
   }
 
@@ -310,6 +393,9 @@ export default class BigCarousel extends Component {
 
   didInsertElement() {
     super.didInsertElement(...arguments);
+
+    // Store reference to component element
+    this.componentElement = this.element;
 
     // Ensure we have access to appEvents before using it
     if (this.appEvents) {
@@ -372,7 +458,7 @@ export default class BigCarousel extends Component {
 
   <template>
     {{#if this.shouldDisplay}}
-      <div class={{this.carouselClasses}}>
+      <div class={{this.carouselClasses}} data-carousel-id={{this.carouselId}}>
         {{#if settings.big_carousel_dismissible}}
           <div class="big-carousel-close-container">
             <DButton
@@ -384,15 +470,15 @@ export default class BigCarousel extends Component {
           </div>
         {{/if}}
 
-        <div class="custom-big-carousel-prev">
+        <div class="custom-big-carousel-prev" data-carousel-id={{this.carouselId}}>
           {{icon "chevron-left"}}
         </div>
 
-        <div class="custom-big-carousel-next">
+        <div class="custom-big-carousel-next" data-carousel-id={{this.carouselId}}>
           {{icon "chevron-right"}}
         </div>
 
-        <div class="custom-big-carousel-slides">
+        <div class="custom-big-carousel-slides" data-carousel-id={{this.carouselId}}>
           {{#each this.bigStaticSlides as |bs|}}
             <div
               class="custom-big-carousel-slide"
@@ -539,7 +625,7 @@ export default class BigCarousel extends Component {
           {{/each}}
         </div>
 
-        <div class="custom-big-carousel-nav">
+        <div class="custom-big-carousel-nav" data-carousel-id={{this.carouselId}}>
           {{#each this.bigStaticSlides}}
             <div class="custom-big-carousel-nav-item"></div>
           {{/each}}
