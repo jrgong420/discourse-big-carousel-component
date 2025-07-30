@@ -214,6 +214,16 @@
                     return;
                 }
                 
+                // Clear any localStorage data that might interfere
+                try {
+                    ['tC', 'tPL', 'tMQ', 'tTf', 't3D', 'tTDu', 'tTDe', 'tADu', 'tADe', 'tTE', 'tAE'].forEach(key => {
+                        localStorage.removeItem(key);
+                    });
+                    log('Cleared tiny-slider localStorage entries');
+                } catch (error) {
+                    log('Error clearing localStorage: ' + error.message, true);
+                }
+
                 // Use the same configuration as our fix
                 sliderInstance = tns({
                     container: container,
@@ -230,9 +240,24 @@
                     rewind: true, // Enable rewind for better UX
                     swipeAngle: 30,
                     nested: false,
+                    useLocalStorage: false, // Disable localStorage interference
                 });
                 
                 setupCustomNavigation();
+
+                // Force navigation to first slide to ensure correct starting position
+                setTimeout(() => {
+                    if (sliderInstance && typeof sliderInstance.goTo === 'function') {
+                        const currentInfo = sliderInstance.getInfo ? sliderInstance.getInfo() : null;
+                        if (currentInfo && currentInfo.index !== 0) {
+                            log('Forcing navigation from index ' + currentInfo.index + ' to index 0');
+                            sliderInstance.goTo(0);
+                        } else {
+                            log('Slider already on correct starting slide (index 0)');
+                        }
+                    }
+                }, 100);
+
                 log('Carousel initialized successfully');
                 
             } catch (error) {

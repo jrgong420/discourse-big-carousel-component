@@ -330,6 +330,12 @@ export default class BigCarousel extends Component {
       return;
     }
 
+    // Prevent double initialization
+    if (this.sliderInstance && !this.sliderInstance.isDestroyed) {
+      console.warn('Slider already initialized, skipping duplicate initialization');
+      return;
+    }
+
     // Check if CSS is loaded
     if (!this.isCSSLoaded() && attempt < maxAttempts) {
       console.warn(`CSS not loaded yet, retrying (${attempt}/${maxAttempts})...`);
@@ -383,6 +389,18 @@ export default class BigCarousel extends Component {
         throw new Error('Tiny-slider library not loaded');
       }
 
+      // Clear any localStorage data that might interfere with initialization
+      try {
+        const carouselId = this.carouselId;
+        // Clear tiny-slider localStorage entries that might affect startIndex
+        ['tC', 'tPL', 'tMQ', 'tTf', 't3D', 'tTDu', 'tTDe', 'tADu', 'tADe', 'tTE', 'tAE'].forEach(key => {
+          localStorage.removeItem(key);
+        });
+        console.log('Cleared tiny-slider localStorage entries');
+      } catch (error) {
+        console.warn('Error clearing localStorage:', error);
+      }
+
       // Try the absolute minimal configuration without built-in controls
       this.sliderInstance = tns({
         container: container,
@@ -399,10 +417,25 @@ export default class BigCarousel extends Component {
         rewind: true, // Enable rewind for better UX when reaching ends
         swipeAngle: 30, // Allow more lenient swipe angle for better mobile UX
         nested: false, // Ensure proper touch handling
+        useLocalStorage: false, // Disable localStorage to prevent interference with startIndex
       });
 
       // Set up custom navigation after successful initialization
       this.setupCustomNavigation();
+
+      // Force navigation to first slide to ensure correct starting position
+      setTimeout(() => {
+        if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
+          const currentInfo = this.sliderInstance.getInfo ? this.sliderInstance.getInfo() : null;
+          if (currentInfo && currentInfo.index !== 0) {
+            console.log(`Forcing navigation from index ${currentInfo.index} to index 0`);
+            this.sliderInstance.goTo(0);
+          } else {
+            console.log('Slider already on correct starting slide (index 0)');
+          }
+        }
+      }, 100);
+
       console.log('Carousel slider initialized successfully', {
         hasGoToMethod: typeof this.sliderInstance.goTo === 'function',
         sliderInfo: this.sliderInstance.getInfo ? this.sliderInstance.getInfo() : 'No getInfo method'
