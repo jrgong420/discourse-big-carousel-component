@@ -26,6 +26,23 @@ export default class BigCarousel extends Component {
   @tracked carouselClosed = this.cookieClosed || false;
 
   get cookieClosed() {
+    // Handle "until_reload" option using sessionStorage
+    if (settings.big_carousel_cookie_lifespan === "until_reload") {
+      try {
+        const sessionData = sessionStorage.getItem("big_carousel_closed");
+        if (sessionData) {
+          const parsed = JSON.parse(sessionData);
+          return parsed.name === settings.big_carousel_cookie_name &&
+                 parsed.closed === "true" &&
+                 parsed.pageLoadId === this.getPageLoadId();
+        }
+      } catch (error) {
+        console.warn("Error parsing carousel session data:", error);
+      }
+      return false;
+    }
+
+    // Handle persistent cookie options
     const cookieData = cookie("big_carousel_closed");
     if (cookieData) {
       try {
@@ -40,11 +57,24 @@ export default class BigCarousel extends Component {
   }
 
   get cookieExpirationDate() {
-    if (settings.big_carousel_cookie_lifespan === "session") {
-      return null; // Session cookie
+    if (settings.big_carousel_cookie_lifespan === "session" ||
+        settings.big_carousel_cookie_lifespan === "until_reload") {
+      return null; // Session cookie or until_reload (handled separately)
     } else {
       return moment().add(1, settings.big_carousel_cookie_lifespan).toDate();
     }
+  }
+
+  getPageLoadId() {
+    // Generate or retrieve a unique ID for this page load session
+    if (!this._pageLoadId) {
+      this._pageLoadId = sessionStorage.getItem("big_carousel_page_load_id");
+      if (!this._pageLoadId) {
+        this._pageLoadId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem("big_carousel_page_load_id", this._pageLoadId);
+      }
+    }
+    return this._pageLoadId;
   }
 
   @computed
@@ -56,7 +86,21 @@ export default class BigCarousel extends Component {
   closeCarousel() {
     this.carouselClosed = true;
 
-    if (settings.big_carousel_cookie_lifespan !== "session") {
+    if (settings.big_carousel_cookie_lifespan === "until_reload") {
+      // Store dismissal in sessionStorage with current page load ID
+      const carouselState = {
+        name: settings.big_carousel_cookie_name,
+        closed: "true",
+        pageLoadId: this.getPageLoadId()
+      };
+
+      try {
+        sessionStorage.setItem("big_carousel_closed", JSON.stringify(carouselState));
+      } catch (error) {
+        console.warn("Error storing carousel dismissal in sessionStorage:", error);
+      }
+    } else if (settings.big_carousel_cookie_lifespan !== "session") {
+      // Store dismissal in persistent cookie
       const carouselState = {
         name: settings.big_carousel_cookie_name,
         closed: "true"
@@ -68,11 +112,21 @@ export default class BigCarousel extends Component {
         path: "/"
       });
     }
+    // For "session" option, we rely on the tracked property only (no persistence)
   }
 
   clearDismissalState() {
     // Clear the dismissal state when the dismissible feature is disabled
     this.carouselClosed = false;
+
+    // Clear sessionStorage (for until_reload option)
+    try {
+      sessionStorage.removeItem("big_carousel_closed");
+    } catch (error) {
+      console.warn("Error clearing carousel sessionStorage:", error);
+    }
+
+    // Clear persistent cookie
     cookie("big_carousel_closed", "", {
       expires: new Date(0), // Expire immediately
       path: "/"
@@ -189,9 +243,24 @@ export default class BigCarousel extends Component {
     super.didInsertElement(...arguments);
     this.appEvents.on("page:changed", this, "ensureSlider");
 
+    // Initialize page load tracking for "until_reload" option
+    this.initializePageLoadTracking();
+
     // Clear dismissal state if dismissible feature is disabled
     if (!settings.big_carousel_dismissible && this.carouselClosed) {
       this.clearDismissalState();
+    }
+  }
+
+  initializePageLoadTracking() {
+    // For "until_reload" option, clear any existing page load ID to start fresh
+    if (settings.big_carousel_cookie_lifespan === "until_reload") {
+      try {
+        sessionStorage.removeItem("big_carousel_page_load_id");
+        this._pageLoadId = null; // Reset the cached ID
+      } catch (error) {
+        console.warn("Error initializing page load tracking:", error);
+      }
     }
   }
 

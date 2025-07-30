@@ -34,6 +34,7 @@ big_carousel_cookie_lifespan:
   type: enum
   default: week
   choices:
+    - until_reload
     - session
     - day
     - week
