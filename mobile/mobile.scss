@@ -5,7 +5,7 @@
 
   .custom-big-carousel-next,
   .custom-big-carousel-prev {
-    display: none !important;
+    display: var(--big-carousel-mobile-arrows-display, none) !important;
   }
 
   .big-carousel-close-container {

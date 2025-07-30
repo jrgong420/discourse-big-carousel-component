@@ -123,4 +123,25 @@ RSpec.describe "Big Carousel on Home Page", type: :system do
       expect(page).to have_link("Click 1", href: "https://example1.com")
     end
   end
+
+  context "mobile arrows functionality" do
+    before do
+      theme.update_setting(:big_carousel_show_on_homepage, true)
+      theme.update_setting(:plugin_outlet, "below-site-header")
+      theme.update_setting(:big_carousel_slides, '[{"link": "https://example.com", "headline": "Test Headline", "text": "Test text", "text_bg": "#000", "button_text": "Click here", "image_url": "", "slide_bg_color": "#333", "slide_type": "slide"}]')
+    end
+
+    it "does not have mobile-arrows-enabled class when mobile arrows are disabled" do
+      theme.update_setting(:big_carousel_mobile_arrows, false)
+      visit "/latest"
+      expect(page).to have_css(".custom-big-carousel")
+      expect(page).not_to have_css(".custom-big-carousel.mobile-arrows-enabled")
+    end
+
+    it "has mobile-arrows-enabled class when mobile arrows are enabled" do
+      theme.update_setting(:big_carousel_mobile_arrows, true)
+      visit "/latest"
+      expect(page).to have_css(".custom-big-carousel.mobile-arrows-enabled")
+    end
+  end
 end

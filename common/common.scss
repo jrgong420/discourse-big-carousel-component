@@ -16,6 +16,14 @@
   position: relative;
   min-height: $big-carousel-min-height;
 
+  // CSS custom property for mobile arrows display
+  --big-carousel-mobile-arrows-display: none;
+
+  // Enable mobile arrows when class is present
+  &.mobile-arrows-enabled {
+    --big-carousel-mobile-arrows-display: flex;
+  }
+
   .big-carousel-close-container {
     position: absolute;
     top: 10px;

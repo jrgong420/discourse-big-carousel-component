@@ -44,3 +44,7 @@ big_carousel_cookie_lifespan:
 big_carousel_cookie_name:
   type: string
   default: "big_carousel_v1"
+
+big_carousel_mobile_arrows:
+  type: bool
+  default: false

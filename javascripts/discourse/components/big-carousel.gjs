@@ -82,6 +82,15 @@ export default class BigCarousel extends Component {
     return JSON.parse(settings.big_carousel_slides);
   }
 
+  @computed
+  get carouselClasses() {
+    let classes = "custom-big-carousel";
+    if (settings.big_carousel_mobile_arrows) {
+      classes += " mobile-arrows-enabled";
+    }
+    return classes;
+  }
+
   @action
   closeCarousel() {
     this.carouselClosed = true;
@@ -281,7 +290,7 @@ export default class BigCarousel extends Component {
 
   <template>
     {{#if this.shouldDisplay}}
-      <div class="custom-big-carousel">
+      <div class={{this.carouselClasses}}>
         {{#if settings.big_carousel_dismissible}}
           <div class="big-carousel-close-container">
             <DButton
