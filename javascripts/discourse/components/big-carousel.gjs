@@ -548,21 +548,34 @@ export default class BigCarousel extends Component {
         console.log(`Child ${index}:`, child, 'offsetHeight:', child.offsetHeight, 'offsetWidth:', child.offsetWidth);
       });
 
-      // Try the absolute minimal configuration
+      // Try the absolute minimal configuration without built-in controls
       try {
         this.sliderInstance = tns({
           container: containerElement, // Use element directly instead of selector
           items: 1,
+          controls: false, // Disable built-in prev/next buttons
+          nav: false, // Disable built-in navigation dots
+          mouseDrag: true,
+          touch: true,
+          autoplay: false, // Disable autoplay for now
         });
         console.log('Carousel slider initialized successfully with minimal element reference');
       } catch (elementError) {
         console.warn('Element reference failed, trying selector:', elementError);
 
-        // Last resort: try with just the selector and no other options
+        // Last resort: try with just the selector and minimal options
         this.sliderInstance = tns({
           container: containerSelector,
+          items: 1,
+          controls: false, // Disable built-in prev/next buttons
+          nav: false, // Disable built-in navigation dots
+          mouseDrag: true,
+          touch: true,
+          autoplay: false,
         });
-        console.log('Carousel slider initialized with selector only');
+        // Set up custom navigation after successful initialization
+      this.setupCustomNavigation();
+      console.log('Carousel slider initialized with selector only');
       }
 
     } catch (error) {
@@ -578,6 +591,60 @@ export default class BigCarousel extends Component {
         console.error('All slider initialization attempts failed');
       }
     }
+  }
+
+  // Set up custom navigation since we disabled tiny-slider's built-in controls
+  setupCustomNavigation() {
+    if (!this.sliderInstance) return;
+
+    const carouselId = this.carouselId;
+    const prevButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-prev`);
+    const nextButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-next`);
+    const navContainer = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-nav`);
+
+    // Set up prev button
+    if (prevButton) {
+      prevButton.addEventListener('click', () => {
+        if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
+          this.sliderInstance.goTo('prev');
+        }
+      });
+    }
+
+    // Set up next button
+    if (nextButton) {
+      nextButton.addEventListener('click', () => {
+        if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
+          this.sliderInstance.goTo('next');
+        }
+      });
+    }
+
+    // Set up navigation dots
+    if (navContainer) {
+      const navItems = navContainer.querySelectorAll('.custom-big-carousel-nav-item');
+      navItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+          if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
+            this.sliderInstance.goTo(index);
+          }
+        });
+      });
+
+      // Update active nav item when slide changes
+      if (this.sliderInstance.events) {
+        this.sliderInstance.events.on('indexChanged', (info) => {
+          navItems.forEach((item, index) => {
+            if (index === info.index) {
+              item.classList.add('tns-nav-active');
+            } else {
+              item.classList.remove('tns-nav-active');
+            }
+          });
+        });
+      }
+    }
+  }
   }
 
   @discourseComputed("router.currentRouteName", "carouselClosed")
@@ -652,6 +719,9 @@ export default class BigCarousel extends Component {
       this.appEvents.off("page:changed", this, "ensureSlider");
     }
 
+    // Clean up custom navigation event listeners
+    this.cleanupCustomNavigation();
+
     // Clean up slider instance with better error handling
     if (this.sliderInstance) {
       try {
@@ -669,6 +739,33 @@ export default class BigCarousel extends Component {
     if (this._sliderTimeout) {
       clearTimeout(this._sliderTimeout);
       this._sliderTimeout = null;
+    }
+  }
+
+  // Clean up custom navigation event listeners
+  cleanupCustomNavigation() {
+    const carouselId = this.carouselId;
+    const prevButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-prev`);
+    const nextButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-next`);
+    const navContainer = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-nav`);
+
+    // Remove event listeners by cloning and replacing elements
+    if (prevButton) {
+      const newPrevButton = prevButton.cloneNode(true);
+      prevButton.parentNode.replaceChild(newPrevButton, prevButton);
+    }
+
+    if (nextButton) {
+      const newNextButton = nextButton.cloneNode(true);
+      nextButton.parentNode.replaceChild(newNextButton, nextButton);
+    }
+
+    if (navContainer) {
+      const navItems = navContainer.querySelectorAll('.custom-big-carousel-nav-item');
+      navItems.forEach(item => {
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+      });
     }
   }
 
