@@ -25,6 +25,34 @@ This document outlines the fixes implemented to resolve the horizontal navigatio
 - Allows `preventDefault()` to work properly during touch events
 - Eliminates the console error
 
+### 3. Carousel Starting on Wrong Slide
+**Problem**: Carousel initially loaded the 3rd carousel element instead of the 1st.
+
+**Root Cause**: The tiny-slider library's default initialization behavior with loop enabled was causing incorrect initial positioning.
+
+**Solution**: Added explicit `startIndex: 0` configuration to ensure the carousel always starts on the first slide.
+
+### 4. Erratic Arrow Navigation Pattern
+**Problem**: Arrow navigation showed erratic behavior (2nd, 1st, 1st, 3rd, 3rd, 2nd, 1st, 1st, 3rd...).
+
+**Root Cause**: The `loop: true` setting was causing complex indexing behavior that didn't work well with the custom navigation implementation.
+
+**Solution**:
+- Disabled `loop: false` to fix erratic navigation
+- Enabled `rewind: true` for better UX when reaching the ends
+- Added comprehensive debugging to track slide transitions
+
+### 5. Navigation Dots Indexing Issues
+**Problem**: Navigation dots (pills) didn't properly correspond to slide indices.
+
+**Root Cause**: Missing proper event handling and active state management for navigation dots.
+
+**Solution**: Enhanced navigation dots setup with:
+- Proper click event handling with error checking
+- Active state management synchronized with slide changes
+- Initial active state setting
+- Comprehensive debugging for dot navigation
+
 ## Code Changes
 
 ### File: `javascripts/discourse/components/big-carousel.js`
@@ -41,7 +69,9 @@ this.sliderInstance = tns({
   autoplay: false,
   preventScrollOnTouch: 'force', // Fix for passive event listener issue
   speed: settings.big_carousel_speed || 300,
-  loop: true,
+  startIndex: 0, // Explicitly start on first slide
+  loop: false, // Disable loop to fix erratic navigation
+  rewind: true, // Enable rewind for better UX when reaching ends
   swipeAngle: 30, // More lenient swipe angle for better mobile UX
   nested: false,
 });
@@ -92,6 +122,16 @@ console.log('Carousel slider initialized successfully', {
 - **'force'**: Forces non-passive listeners, allowing `preventDefault()`
 - **'auto'**: Automatically determines based on browser support
 
+### `startIndex: 0`
+- **Purpose**: Explicitly sets the initial slide to display
+- **Default**: Usually 0, but can be affected by other settings
+- **Fix**: Ensures carousel always starts on the first slide
+
+### `loop: false` and `rewind: true`
+- **loop: false**: Disables infinite looping to fix erratic navigation
+- **rewind: true**: Allows smooth transition from last slide back to first
+- **Benefit**: Provides predictable navigation behavior
+
 ### `swipeAngle: 30`
 - **Default**: `15` degrees
 - **Increased to 30**: More lenient angle detection for better mobile UX
@@ -111,10 +151,13 @@ console.log('Carousel slider initialized successfully', {
 5. Verify no "preventDefault" or "passive event listener" errors appear
 
 ### Expected Behavior
-- **Desktop**: Arrow buttons should smoothly navigate between slides
+- **Initial Load**: Carousel starts on the first slide (not 3rd)
+- **Desktop Arrow Navigation**: Sequential navigation (1→2→3→1→2→3...)
+- **Navigation Dots**: Clicking first dot goes to first slide, second dot to second slide, etc.
 - **Mobile**: Horizontal swipes should navigate between slides
 - **Console**: No JavaScript errors related to passive event listeners
 - **Transitions**: Smooth animations between slides
+- **Debugging**: Comprehensive console logging for troubleshooting
 
 ## Browser Compatibility
 - Modern browsers with ES6+ support
