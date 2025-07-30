@@ -238,10 +238,10 @@ export default class BigCarousel extends Component {
           this.set("bigUserSlides", bigUserSlides);
           this.set("bigStaticSlides", bigStaticSlides);
           loadScript(settings.theme_uploads.tiny_slider).then(() => {
-            // Use a longer delay and multiple attempts to ensure DOM is fully rendered
+            // Use a longer delay to ensure both DOM and CSS are fully loaded
             this._sliderTimeout = setTimeout(() => {
               this.initializeSliderWithRetry();
-            }, 200);
+            }, 500);
           }).catch((error) => {
             console.error('Error loading tiny-slider script:', error);
           });
@@ -252,9 +252,35 @@ export default class BigCarousel extends Component {
     }
   }
 
+  // Check if CSS is loaded by testing if carousel styles are applied
+  isCSSLoaded() {
+    const testElement = document.createElement('div');
+    testElement.className = 'custom-big-carousel';
+    testElement.style.position = 'absolute';
+    testElement.style.visibility = 'hidden';
+    testElement.style.top = '-9999px';
+    document.body.appendChild(testElement);
+
+    const computedStyle = window.getComputedStyle(testElement);
+    const hasMinHeight = computedStyle.minHeight && computedStyle.minHeight !== '0px';
+    const hasPosition = computedStyle.position === 'relative';
+
+    document.body.removeChild(testElement);
+    return hasMinHeight || hasPosition;
+  }
+
   initializeSliderWithRetry(attempt = 1, maxAttempts = 3) {
     // Check if component is still alive
     if (this.isDestroyed || this.isDestroying) {
+      return;
+    }
+
+    // Check if CSS is loaded
+    if (!this.isCSSLoaded() && attempt < maxAttempts) {
+      console.warn(`CSS not loaded yet, retrying (${attempt}/${maxAttempts})...`);
+      this._sliderTimeout = setTimeout(() => {
+        this.initializeSliderWithRetry(attempt + 1, maxAttempts);
+      }, 300 * attempt);
       return;
     }
 
@@ -312,9 +338,16 @@ export default class BigCarousel extends Component {
 
     // Check if slides are properly rendered (have content)
     let hasValidSlides = false;
+    const minHeight = settings.big_carousel_min_height || '300px';
+
     slides.forEach(slide => {
       if (slide.offsetHeight > 0 && slide.offsetWidth > 0) {
         hasValidSlides = true;
+      } else {
+        // Apply fallback dimensions to slides that have no dimensions
+        slide.style.minHeight = minHeight;
+        slide.style.width = '100%';
+        slide.style.display = 'block';
       }
     });
 
@@ -327,14 +360,49 @@ export default class BigCarousel extends Component {
     }
 
     try {
-      // Validate all elements exist and are properly rendered
+      // Validate all elements exist
       if (!container || !prevButton || !nextButton || !navContainer) {
         throw new Error('Required carousel elements not found');
       }
 
-      // Double-check that elements are visible and have dimensions
-      if (container.offsetHeight === 0 || container.offsetWidth === 0) {
-        throw new Error('Carousel container has no dimensions');
+      // Check if container has dimensions or if CSS might still be loading
+      const containerRect = container.getBoundingClientRect();
+      const hasNaturalDimensions = container.offsetHeight > 0 || container.offsetWidth > 0;
+      const hasComputedDimensions = containerRect.height > 0 || containerRect.width > 0;
+
+      // Check if container is hidden by CSS (display: none, visibility: hidden)
+      const computedStyle = window.getComputedStyle(container);
+      const isVisible = computedStyle.display !== 'none' &&
+                       computedStyle.visibility !== 'hidden' &&
+                       computedStyle.opacity !== '0';
+
+      if (!hasNaturalDimensions && !hasComputedDimensions && isVisible) {
+        // Container exists and is visible but has no dimensions - might be CSS loading issue
+        if (attempt < maxAttempts) {
+          console.warn(`Container has no dimensions but is visible, retrying (${attempt}/${maxAttempts})...`);
+          this._sliderTimeout = setTimeout(() => {
+            this.initializeSliderWithRetry(attempt + 1, maxAttempts);
+          }, 300 * attempt);
+          return;
+        } else {
+          // Force minimum dimensions as fallback
+          console.warn('Container has no dimensions after all retries, applying fallback dimensions...');
+          const minHeight = settings.big_carousel_min_height || '300px';
+          container.style.minHeight = minHeight;
+          container.style.width = '100%';
+
+          // Also ensure parent carousel has dimensions
+          const carouselParent = container.closest('.custom-big-carousel');
+          if (carouselParent) {
+            carouselParent.style.minHeight = minHeight;
+            carouselParent.style.position = 'relative';
+          }
+        }
+      }
+
+      if (!isVisible) {
+        console.warn('Container is not visible, skipping slider initialization');
+        return;
       }
 
       // Initialize slider with element references instead of selectors
