@@ -71,6 +71,7 @@ export default class BigCarousel extends Component {
               prevButton: ".custom-big-carousel-prev",
               nextButton: ".custom-big-carousel-next",
               navContainer: ".custom-big-carousel-nav",
+              preventScrollOnTouch: "force",
             });
           });
         })
