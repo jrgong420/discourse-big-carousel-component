@@ -7,4 +7,18 @@
   .custom-big-carousel-prev {
     display: none !important;
   }
+
+  .big-carousel-close-container {
+    top: 5px;
+    right: 5px;
+
+    .big-carousel-close-btn {
+      width: 28px;
+      height: 28px;
+
+      .d-icon {
+        font-size: 12px;
+      }
+    }
+  }
 }

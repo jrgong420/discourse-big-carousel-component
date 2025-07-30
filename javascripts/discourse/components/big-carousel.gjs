@@ -1,27 +1,73 @@
 /* global tns */
 import Component from "@ember/component";
 import { concat } from "@ember/helper";
-import { computed, set } from "@ember/object";
+import { action, computed, set } from "@ember/object";
 import { service } from "@ember/service";
+import { tracked } from "@glimmer/tracking";
 import { Promise } from "rsvp";
 import { and } from "truth-helpers";
 import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
+import DButton from "discourse/components/d-button";
 import avatar from "discourse/helpers/avatar";
 import icon from "discourse/helpers/d-icon";
 import htmlSafe from "discourse/helpers/html-safe";
 import { ajax } from "discourse/lib/ajax";
+import cookie from "discourse/lib/cookie";
 import discourseComputed from "discourse/lib/decorators";
 import loadScript from "discourse/lib/load-script";
+import { i18n } from "discourse-i18n";
+import moment from "moment";
 
 export default class BigCarousel extends Component {
   @service router;
 
   isLoading = true;
   sliderInstance = null;
+  @tracked carouselClosed = this.cookieClosed || false;
+
+  get cookieClosed() {
+    const cookieData = cookie("big_carousel_closed");
+    if (cookieData) {
+      try {
+        const parsed = JSON.parse(cookieData);
+        return parsed.name === settings.big_carousel_cookie_name && parsed.closed === "true";
+      } catch (error) {
+        console.warn("Error parsing carousel cookie:", error);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  get cookieExpirationDate() {
+    if (settings.big_carousel_cookie_lifespan === "session") {
+      return null; // Session cookie
+    } else {
+      return moment().add(1, settings.big_carousel_cookie_lifespan).toDate();
+    }
+  }
 
   @computed
   get bigSlides() {
     return JSON.parse(settings.big_carousel_slides);
+  }
+
+  @action
+  closeCarousel() {
+    this.carouselClosed = true;
+
+    if (settings.big_carousel_cookie_lifespan !== "session") {
+      const carouselState = {
+        name: settings.big_carousel_cookie_name,
+        closed: "true"
+      };
+
+      const expirationDate = this.cookieExpirationDate;
+      cookie("big_carousel_closed", JSON.stringify(carouselState), {
+        expires: expirationDate,
+        path: "/"
+      });
+    }
   }
 
   ensureSlider() {
@@ -103,8 +149,13 @@ export default class BigCarousel extends Component {
     }
   }
 
-  @discourseComputed("router.currentRouteName")
-  shouldDisplay(currentRouteName) {
+  @discourseComputed("router.currentRouteName", "carouselClosed")
+  shouldDisplay(currentRouteName, carouselClosed) {
+    // Don't show if carousel has been closed
+    if (carouselClosed) {
+      return false;
+    }
+
     // Always show on categories page (original behavior)
     if (currentRouteName === "discovery.categories") {
       return true;
@@ -148,6 +199,17 @@ export default class BigCarousel extends Component {
   <template>
     {{#if this.shouldDisplay}}
       <div class="custom-big-carousel">
+        {{#if settings.big_carousel_dismissible}}
+          <div class="big-carousel-close-container">
+            <DButton
+              @icon="times"
+              @action={{this.closeCarousel}}
+              @title={{i18n (theme-prefix "close_button.title")}}
+              class="btn-transparent big-carousel-close-btn"
+            />
+          </div>
+        {{/if}}
+
         <div class="custom-big-carousel-prev">
           {{icon "chevron-left"}}
         </div>
