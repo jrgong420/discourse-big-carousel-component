@@ -156,6 +156,8 @@ RSpec.describe "Big Carousel on Home Page", type: :system do
       visit "/latest"
 
       expect(page).to have_css(".custom-big-carousel")
+      # Wait for the carousel to load and render
+      expect(page).to have_css(".custom-big-carousel-slide", wait: 5)
       expect(page).to have_css('a[href="https://external-site.com"][target="_blank"]')
       expect(page).to have_css('a[href="https://external-site.com"][rel="noopener noreferrer"]')
     end
@@ -165,6 +167,8 @@ RSpec.describe "Big Carousel on Home Page", type: :system do
       visit "/latest"
 
       expect(page).to have_css(".custom-big-carousel")
+      # Wait for the carousel to load and render
+      expect(page).to have_css(".custom-big-carousel-slide", wait: 5)
       expect(page).to have_css('a[href="/internal-page"]')
       expect(page).not_to have_css('a[href="/internal-page"][target="_blank"]')
     end

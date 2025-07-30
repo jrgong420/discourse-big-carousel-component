@@ -51,6 +51,17 @@ export default class BigCarousel extends Component {
     }
   }
 
+  // Helper to get link attributes for external links
+  getLinkAttributes(url) {
+    if (this.isExternalLink(url)) {
+      return {
+        target: "_blank",
+        rel: "noopener noreferrer"
+      };
+    }
+    return {};
+  }
+
   get cookieClosed() {
     // Handle "until_reload" option using sessionStorage
     if (settings.big_carousel_cookie_lifespan === "until_reload") {
@@ -219,29 +230,49 @@ export default class BigCarousel extends Component {
           this.set("bigUserSlides", bigUserSlides);
           this.set("bigStaticSlides", bigStaticSlides);
           loadScript(settings.theme_uploads.tiny_slider).then(() => {
-            // Validate DOM elements exist before initializing slider
-            const container = document.querySelector(".custom-big-carousel-slides");
-            const prevButton = document.querySelector(".custom-big-carousel-prev");
-            const nextButton = document.querySelector(".custom-big-carousel-next");
-            const navContainer = document.querySelector(".custom-big-carousel-nav");
+            // Use a small delay to ensure DOM is fully rendered
+            this._sliderTimeout = setTimeout(() => {
+              // Check if component is still alive
+              if (this.isDestroyed || this.isDestroying) {
+                return;
+              }
 
-            if (!container) {
-              console.warn('Carousel container not found, skipping slider initialization');
-              return;
-            }
+              // Validate DOM elements exist before initializing slider
+              const container = document.querySelector(".custom-big-carousel-slides");
+              const prevButton = document.querySelector(".custom-big-carousel-prev");
+              const nextButton = document.querySelector(".custom-big-carousel-next");
+              const navContainer = document.querySelector(".custom-big-carousel-nav");
 
-            // slider script
-            this.sliderInstance = tns({
-              container: ".custom-big-carousel-slides",
-              items: 1,
-              controls: true,
-              autoplay: settings.big_carousel_autoplay,
-              speed: settings.big_carousel_speed,
-              prevButton: ".custom-big-carousel-prev",
-              nextButton: ".custom-big-carousel-next",
-              navContainer: ".custom-big-carousel-nav",
-              preventScrollOnTouch: "force",
-            });
+              if (!container) {
+                console.warn('Carousel container not found, skipping slider initialization');
+                return;
+              }
+
+              // Additional check to ensure container has content
+              if (container.children.length === 0) {
+                console.warn('Carousel container is empty, skipping slider initialization');
+                return;
+              }
+
+              try {
+                // slider script
+                this.sliderInstance = tns({
+                  container: ".custom-big-carousel-slides",
+                  items: 1,
+                  controls: true,
+                  autoplay: settings.big_carousel_autoplay,
+                  speed: settings.big_carousel_speed,
+                  prevButton: ".custom-big-carousel-prev",
+                  nextButton: ".custom-big-carousel-next",
+                  navContainer: ".custom-big-carousel-nav",
+                  preventScrollOnTouch: "force",
+                });
+              } catch (error) {
+                console.error('Error initializing carousel slider:', error);
+              }
+            }, 100);
+          }).catch((error) => {
+            console.error('Error loading tiny-slider script:', error);
           });
         })
         .finally(() => {
@@ -279,7 +310,11 @@ export default class BigCarousel extends Component {
 
   didInsertElement() {
     super.didInsertElement(...arguments);
-    this.appEvents.on("page:changed", this, "ensureSlider");
+
+    // Ensure we have access to appEvents before using it
+    if (this.appEvents) {
+      this.appEvents.on("page:changed", this, "ensureSlider");
+    }
 
     // Initialize page load tracking for "until_reload" option
     this.initializePageLoadTracking();
@@ -288,6 +323,11 @@ export default class BigCarousel extends Component {
     if (!settings.big_carousel_dismissible && this.carouselClosed) {
       this.clearDismissalState();
     }
+
+    // Initialize slider after DOM is ready
+    setTimeout(() => {
+      this.ensureSlider();
+    }, 50);
   }
 
   initializePageLoadTracking() {
@@ -304,16 +344,29 @@ export default class BigCarousel extends Component {
 
   willDestroyElement() {
     super.willDestroyElement(...arguments);
-    this.appEvents.off("page:changed", this, "ensureSlider");
 
-    // Clean up slider instance
-    if (this.sliderInstance && typeof this.sliderInstance.destroy === 'function') {
+    // Clean up event listeners
+    if (this.appEvents) {
+      this.appEvents.off("page:changed", this, "ensureSlider");
+    }
+
+    // Clean up slider instance with better error handling
+    if (this.sliderInstance) {
       try {
-        this.sliderInstance.destroy();
+        if (typeof this.sliderInstance.destroy === 'function') {
+          this.sliderInstance.destroy();
+        }
       } catch (error) {
         console.warn('Error destroying slider instance on component destroy:', error);
+      } finally {
+        this.sliderInstance = null;
       }
-      this.sliderInstance = null;
+    }
+
+    // Clear any pending timeouts
+    if (this._sliderTimeout) {
+      clearTimeout(this._sliderTimeout);
+      this._sliderTimeout = null;
     }
   }
 
@@ -361,28 +414,54 @@ export default class BigCarousel extends Component {
                     style={{htmlSafe (concat "background:" bs.text_bg)}}
                   >
                     <div class="custom-big-carousel-main-content">
-                      <a
-                        href={{bs.link}}
-                        class="custom-big-carousel-text-link"
-                        {{#if (this.isExternalLink bs.link)}}target="_blank" rel="noopener noreferrer"{{/if}}
-                      >
-                        <h2>
-                          {{bs.headline}}
-                        </h2>
-
-                        <p>
-                          {{bs.text}}
-                        </p>
-                      </a>
-
-                      {{#if (and bs.button_text bs.link)}}
+                      {{#if (this.isExternalLink bs.link)}}
                         <a
                           href={{bs.link}}
-                          class="btn btn-primary btn-text"
-                          {{#if (this.isExternalLink bs.link)}}target="_blank" rel="noopener noreferrer"{{/if}}
+                          class="custom-big-carousel-text-link"
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
-                          {{bs.button_text}}
+                          <h2>
+                            {{bs.headline}}
+                          </h2>
+
+                          <p>
+                            {{bs.text}}
+                          </p>
                         </a>
+                      {{else}}
+                        <a
+                          href={{bs.link}}
+                          class="custom-big-carousel-text-link"
+                        >
+                          <h2>
+                            {{bs.headline}}
+                          </h2>
+
+                          <p>
+                            {{bs.text}}
+                          </p>
+                        </a>
+                      {{/if}}
+
+                      {{#if (and bs.button_text bs.link)}}
+                        {{#if (this.isExternalLink bs.link)}}
+                          <a
+                            href={{bs.link}}
+                            class="btn btn-primary btn-text"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {{bs.button_text}}
+                          </a>
+                        {{else}}
+                          <a
+                            href={{bs.link}}
+                            class="btn btn-primary btn-text"
+                          >
+                            {{bs.button_text}}
+                          </a>
+                        {{/if}}
                       {{/if}}
                     </div>
                   </div>
@@ -414,10 +493,7 @@ export default class BigCarousel extends Component {
                       </h4>
                       <div style={{htmlSafe (concat "background:" bs.text_bg)}}>
                         <h3>
-                          <a
-                            href="/u/{{bs.user_info.user.username}}"
-                            {{#if (this.isExternalLink (concat "/u/" bs.user_info.user.username))}}target="_blank" rel="noopener noreferrer"{{/if}}
-                          >
+                          <a href="/u/{{bs.user_info.user.username}}">
                             {{avatar bs.user_info.user imageSize="huge"}}
                             {{bs.user_info.user.username}}
                           </a>
@@ -432,7 +508,6 @@ export default class BigCarousel extends Component {
                         <a
                           href="/u/{{bs.link}}"
                           class="btn btn-primary btn-text"
-                          {{#if (this.isExternalLink (concat "/u/" bs.link))}}target="_blank" rel="noopener noreferrer"{{/if}}
                         >
                           {{bs.button_text}}
                         </a>
@@ -445,10 +520,7 @@ export default class BigCarousel extends Component {
 
                         {{#each bs.user_activity as |activity|}}
                           <div class="bc-user-post">
-                            <a
-                              href="/t/{{activity.topic_id}}"
-                              {{#if (this.isExternalLink (concat "/t/" activity.topic_id))}}target="_blank" rel="noopener noreferrer"{{/if}}
-                            >
+                            <a href="/t/{{activity.topic_id}}">
                               <div class="bc-user-post-title">
                                 {{activity.title}}
                               </div>
