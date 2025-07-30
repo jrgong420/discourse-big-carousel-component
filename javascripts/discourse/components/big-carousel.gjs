@@ -216,7 +216,7 @@ export default class BigCarousel extends Component {
         {{#if settings.big_carousel_dismissible}}
           <div class="big-carousel-close-container">
             <DButton
-              @icon="times"
+              @icon="circle-xmark"
               @action={{this.closeCarousel}}
               @title={{i18n "close_button.title"}}
               class="btn-transparent big-carousel-close-btn"
