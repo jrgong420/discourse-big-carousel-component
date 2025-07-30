@@ -17,6 +17,7 @@ export default class BigCarousel extends Component {
   @service router;
 
   isLoading = true;
+  sliderInstance = null;
 
   @computed
   get bigSlides() {
@@ -24,6 +25,16 @@ export default class BigCarousel extends Component {
   }
 
   ensureSlider() {
+    // Destroy existing slider instance if it exists
+    if (this.sliderInstance && typeof this.sliderInstance.destroy === 'function') {
+      try {
+        this.sliderInstance.destroy();
+      } catch (error) {
+        console.warn('Error destroying slider instance:', error);
+      }
+      this.sliderInstance = null;
+    }
+
     if (this.shouldDisplay && this.bigSlides.length > 1) {
       // set up static populated slides
 
@@ -61,8 +72,19 @@ export default class BigCarousel extends Component {
           this.set("bigUserSlides", bigUserSlides);
           this.set("bigStaticSlides", bigStaticSlides);
           loadScript(settings.theme_uploads.tiny_slider).then(() => {
+            // Validate DOM elements exist before initializing slider
+            const container = document.querySelector(".custom-big-carousel-slides");
+            const prevButton = document.querySelector(".custom-big-carousel-prev");
+            const nextButton = document.querySelector(".custom-big-carousel-next");
+            const navContainer = document.querySelector(".custom-big-carousel-nav");
+
+            if (!container) {
+              console.warn('Carousel container not found, skipping slider initialization');
+              return;
+            }
+
             // slider script
-            tns({
+            this.sliderInstance = tns({
               container: ".custom-big-carousel-slides",
               items: 1,
               controls: true,
@@ -111,6 +133,16 @@ export default class BigCarousel extends Component {
   willDestroyElement() {
     super.willDestroyElement(...arguments);
     this.appEvents.off("page:changed", this, "ensureSlider");
+
+    // Clean up slider instance
+    if (this.sliderInstance && typeof this.sliderInstance.destroy === 'function') {
+      try {
+        this.sliderInstance.destroy();
+      } catch (error) {
+        console.warn('Error destroying slider instance on component destroy:', error);
+      }
+      this.sliderInstance = null;
+    }
   }
 
   <template>
