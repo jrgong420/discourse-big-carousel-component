@@ -25,3 +25,21 @@ plugin_outlet:
   choices:
     - below-site-header
     - above-main-container
+
+big_carousel_dismissible:
+  type: bool
+  default: false
+
+big_carousel_cookie_lifespan:
+  type: enum
+  default: week
+  choices:
+    - session
+    - day
+    - week
+    - month
+    - year
+
+big_carousel_cookie_name:
+  type: string
+  default: "big_carousel_v1"
