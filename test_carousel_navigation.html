@@ -120,6 +120,30 @@
             color: #00b894;
             font-weight: bold;
         }
+
+        .custom-big-carousel-nav {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .custom-big-carousel-nav-item {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .custom-big-carousel-nav-item:hover,
+        .custom-big-carousel-nav-item.tns-nav-active {
+            background: rgba(255,255,255,1);
+        }
     </style>
 </head>
 <body>
@@ -148,6 +172,12 @@
                 <div class="slide-1">Slide 1</div>
                 <div class="slide-2">Slide 2</div>
                 <div class="slide-3">Slide 3</div>
+            </div>
+
+            <div class="custom-big-carousel-nav" data-carousel-id="test-carousel">
+                <div class="custom-big-carousel-nav-item"></div>
+                <div class="custom-big-carousel-nav-item"></div>
+                <div class="custom-big-carousel-nav-item"></div>
             </div>
         </div>
         
@@ -195,7 +225,9 @@
                     autoplay: false,
                     preventScrollOnTouch: 'force', // Our fix for passive event listener issue
                     speed: 300,
-                    loop: true,
+                    startIndex: 0, // Explicitly start on first slide
+                    loop: false, // Disable loop to fix erratic navigation
+                    rewind: true, // Enable rewind for better UX
                     swipeAngle: 30,
                     nested: false,
                 });
@@ -214,10 +246,11 @@
                 log('Slider instance not available for navigation setup', true);
                 return;
             }
-            
+
             const prevButton = document.querySelector('[data-carousel-id="test-carousel"].custom-big-carousel-prev');
             const nextButton = document.querySelector('[data-carousel-id="test-carousel"].custom-big-carousel-next');
-            
+            const navContainer = document.querySelector('[data-carousel-id="test-carousel"].custom-big-carousel-nav');
+
             if (prevButton) {
                 prevButton.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -237,7 +270,7 @@
             } else {
                 log('Previous button not found', true);
             }
-            
+
             if (nextButton) {
                 nextButton.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -256,6 +289,51 @@
                 log('Next button navigation set up');
             } else {
                 log('Next button not found', true);
+            }
+
+            // Set up navigation dots
+            if (navContainer) {
+                const navItems = navContainer.querySelectorAll('.custom-big-carousel-nav-item');
+                log('Found ' + navItems.length + ' navigation items');
+
+                navItems.forEach((item, index) => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (sliderInstance && typeof sliderInstance.goTo === 'function') {
+                            try {
+                                log('Navigating to slide ' + index + ' via nav dot');
+                                sliderInstance.goTo(index);
+                            } catch (error) {
+                                log('Error navigating to slide ' + index + ': ' + error.message, true);
+                            }
+                        } else {
+                            log('Slider instance or goTo method not available for nav dot', true);
+                        }
+                    });
+                });
+
+                // Update active nav item when slide changes
+                if (sliderInstance.events) {
+                    sliderInstance.events.on('indexChanged', (info) => {
+                        log('Slide index changed to: ' + info.index);
+                        navItems.forEach((item, index) => {
+                            if (index === info.index) {
+                                item.classList.add('tns-nav-active');
+                            } else {
+                                item.classList.remove('tns-nav-active');
+                            }
+                        });
+                    });
+                }
+
+                // Set initial active state
+                if (navItems.length > 0) {
+                    navItems[0].classList.add('tns-nav-active');
+                    log('Set initial active nav item to index 0');
+                }
+            } else {
+                log('Navigation container not found', true);
             }
         }
         

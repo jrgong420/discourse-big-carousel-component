@@ -394,7 +394,9 @@ export default class BigCarousel extends Component {
         autoplay: false, // Disable autoplay for now
         preventScrollOnTouch: 'force', // Fix passive event listener issue - forces non-passive listeners
         speed: settings.big_carousel_speed || 300,
-        loop: true, // Enable looping for better UX
+        startIndex: 0, // Explicitly start on first slide
+        loop: false, // Disable loop to fix erratic navigation - can be enabled later if needed
+        rewind: true, // Enable rewind for better UX when reaching ends
         swipeAngle: 30, // Allow more lenient swipe angle for better mobile UX
         nested: false, // Ensure proper touch handling
       });
@@ -439,8 +441,27 @@ export default class BigCarousel extends Component {
         e.stopPropagation();
         if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
           try {
+            // Get current info before navigation
+            let currentInfo = null;
+            if (this.sliderInstance.getInfo) {
+              currentInfo = this.sliderInstance.getInfo();
+              console.log('Before prev navigation:', {
+                currentIndex: currentInfo.index,
+                slideCount: currentInfo.slideCount
+              });
+            }
+
             this.sliderInstance.goTo('prev');
             console.log('Navigated to previous slide');
+
+            // Get info after navigation
+            if (this.sliderInstance.getInfo) {
+              const newInfo = this.sliderInstance.getInfo();
+              console.log('After prev navigation:', {
+                newIndex: newInfo.index,
+                slideCount: newInfo.slideCount
+              });
+            }
           } catch (error) {
             console.error('Error navigating to previous slide:', error);
           }
@@ -460,8 +481,27 @@ export default class BigCarousel extends Component {
         e.stopPropagation();
         if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
           try {
+            // Get current info before navigation
+            let currentInfo = null;
+            if (this.sliderInstance.getInfo) {
+              currentInfo = this.sliderInstance.getInfo();
+              console.log('Before next navigation:', {
+                currentIndex: currentInfo.index,
+                slideCount: currentInfo.slideCount
+              });
+            }
+
             this.sliderInstance.goTo('next');
             console.log('Navigated to next slide');
+
+            // Get info after navigation
+            if (this.sliderInstance.getInfo) {
+              const newInfo = this.sliderInstance.getInfo();
+              console.log('After next navigation:', {
+                newIndex: newInfo.index,
+                slideCount: newInfo.slideCount
+              });
+            }
           } catch (error) {
             console.error('Error navigating to next slide:', error);
           }
@@ -474,13 +514,34 @@ export default class BigCarousel extends Component {
       console.warn('Next button not found for carousel:', carouselId);
     }
 
-    // Set up navigation dots
+    // Set up navigation dots with improved indexing
     if (navContainer) {
       const navItems = navContainer.querySelectorAll('.custom-big-carousel-nav-item');
+      console.log(`Found ${navItems.length} navigation items`);
+
       navItems.forEach((item, index) => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
-            this.sliderInstance.goTo(index);
+            try {
+              console.log(`Navigating to slide ${index} via nav dot`);
+              this.sliderInstance.goTo(index);
+
+              // Get current slide info for debugging
+              if (this.sliderInstance.getInfo) {
+                const info = this.sliderInstance.getInfo();
+                console.log('Current slider info after nav click:', {
+                  index: info.index,
+                  slideCount: info.slideCount,
+                  displayIndex: info.displayIndex
+                });
+              }
+            } catch (error) {
+              console.error(`Error navigating to slide ${index}:`, error);
+            }
+          } else {
+            console.warn('Slider instance or goTo method not available for nav dot');
           }
         });
       });
@@ -488,6 +549,7 @@ export default class BigCarousel extends Component {
       // Update active nav item when slide changes
       if (this.sliderInstance.events) {
         this.sliderInstance.events.on('indexChanged', (info) => {
+          console.log('Slide index changed:', info);
           navItems.forEach((item, index) => {
             if (index === info.index) {
               item.classList.add('tns-nav-active');
@@ -497,6 +559,14 @@ export default class BigCarousel extends Component {
           });
         });
       }
+
+      // Set initial active state
+      if (navItems.length > 0) {
+        navItems[0].classList.add('tns-nav-active');
+        console.log('Set initial active nav item to index 0');
+      }
+    } else {
+      console.warn('Navigation container not found for carousel:', carouselId);
     }
   }
 
