@@ -25,6 +25,32 @@ export default class BigCarousel extends Component {
   sliderInstance = null;
   @tracked carouselClosed = this.cookieClosed || false;
 
+  // Helper function to determine if a link is external
+  isExternalLink(url) {
+    if (!url) return false;
+
+    // Handle relative URLs (internal)
+    if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+      return false;
+    }
+
+    // Handle protocol-relative URLs
+    if (url.startsWith('//')) {
+      url = 'https:' + url;
+    }
+
+    try {
+      const linkUrl = new URL(url);
+      const currentUrl = new URL(window.location.href);
+
+      // Compare hostnames to determine if external
+      return linkUrl.hostname !== currentUrl.hostname;
+    } catch (error) {
+      // If URL parsing fails, assume it's internal
+      return false;
+    }
+  }
+
   get cookieClosed() {
     // Handle "until_reload" option using sessionStorage
     if (settings.big_carousel_cookie_lifespan === "until_reload") {
@@ -335,7 +361,11 @@ export default class BigCarousel extends Component {
                     style={{htmlSafe (concat "background:" bs.text_bg)}}
                   >
                     <div class="custom-big-carousel-main-content">
-                      <a href={{bs.link}} class="custom-big-carousel-text-link">
+                      <a
+                        href={{bs.link}}
+                        class="custom-big-carousel-text-link"
+                        {{#if (this.isExternalLink bs.link)}}target="_blank" rel="noopener noreferrer"{{/if}}
+                      >
                         <h2>
                           {{bs.headline}}
                         </h2>
@@ -346,7 +376,11 @@ export default class BigCarousel extends Component {
                       </a>
 
                       {{#if (and bs.button_text bs.link)}}
-                        <a href={{bs.link}} class="btn btn-primary btn-text">
+                        <a
+                          href={{bs.link}}
+                          class="btn btn-primary btn-text"
+                          {{#if (this.isExternalLink bs.link)}}target="_blank" rel="noopener noreferrer"{{/if}}
+                        >
                           {{bs.button_text}}
                         </a>
                       {{/if}}
@@ -380,7 +414,10 @@ export default class BigCarousel extends Component {
                       </h4>
                       <div style={{htmlSafe (concat "background:" bs.text_bg)}}>
                         <h3>
-                          <a href="/u/{{bs.user_info.user.username}}">
+                          <a
+                            href="/u/{{bs.user_info.user.username}}"
+                            {{#if (this.isExternalLink (concat "/u/" bs.user_info.user.username))}}target="_blank" rel="noopener noreferrer"{{/if}}
+                          >
                             {{avatar bs.user_info.user imageSize="huge"}}
                             {{bs.user_info.user.username}}
                           </a>
@@ -395,6 +432,7 @@ export default class BigCarousel extends Component {
                         <a
                           href="/u/{{bs.link}}"
                           class="btn btn-primary btn-text"
+                          {{#if (this.isExternalLink (concat "/u/" bs.link))}}target="_blank" rel="noopener noreferrer"{{/if}}
                         >
                           {{bs.button_text}}
                         </a>
@@ -407,7 +445,10 @@ export default class BigCarousel extends Component {
 
                         {{#each bs.user_activity as |activity|}}
                           <div class="bc-user-post">
-                            <a href="/t/{{activity.topic_id}}">
+                            <a
+                              href="/t/{{activity.topic_id}}"
+                              {{#if (this.isExternalLink (concat "/t/" activity.topic_id))}}target="_blank" rel="noopener noreferrer"{{/if}}
+                            >
                               <div class="bc-user-post-title">
                                 {{activity.title}}
                               </div>

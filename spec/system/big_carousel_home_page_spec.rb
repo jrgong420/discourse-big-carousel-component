@@ -145,6 +145,31 @@ RSpec.describe "Big Carousel on Home Page", type: :system do
     end
   end
 
+  context "external link handling" do
+    before do
+      theme.update_setting(:big_carousel_show_on_homepage, true)
+      theme.update_setting(:plugin_outlet, "below-site-header")
+    end
+
+    it "adds target='_blank' to external links" do
+      theme.update_setting(:big_carousel_slides, '[{"link": "https://external-site.com", "headline": "External Link", "text": "This links to an external site", "text_bg": "#000", "button_text": "Visit External", "image_url": "", "slide_bg_color": "#333", "slide_type": "slide"}]')
+      visit "/latest"
+
+      expect(page).to have_css(".custom-big-carousel")
+      expect(page).to have_css('a[href="https://external-site.com"][target="_blank"]')
+      expect(page).to have_css('a[href="https://external-site.com"][rel="noopener noreferrer"]')
+    end
+
+    it "does not add target='_blank' to internal links" do
+      theme.update_setting(:big_carousel_slides, '[{"link": "/internal-page", "headline": "Internal Link", "text": "This links to an internal page", "text_bg": "#000", "button_text": "Visit Internal", "image_url": "", "slide_bg_color": "#333", "slide_type": "slide"}]')
+      visit "/latest"
+
+      expect(page).to have_css(".custom-big-carousel")
+      expect(page).to have_css('a[href="/internal-page"]')
+      expect(page).not_to have_css('a[href="/internal-page"][target="_blank"]')
+    end
+  end
+
   context "desktop arrows functionality" do
     before do
       theme.update_setting(:big_carousel_show_on_homepage, true)
