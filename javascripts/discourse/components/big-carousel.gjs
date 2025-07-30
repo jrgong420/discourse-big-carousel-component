@@ -204,7 +204,7 @@ export default class BigCarousel extends Component {
             <DButton
               @icon="times"
               @action={{this.closeCarousel}}
-              @title={{i18n (theme-prefix "close_button.title")}}
+              @title={{i18n "close_button.title"}}
               class="btn-transparent big-carousel-close-btn"
             />
           </div>

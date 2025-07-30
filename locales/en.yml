@@ -1,12 +1,10 @@
 en:
   theme_metadata:
+    description: "It's a big carousel"
     settings:
       big_carousel_dismissible: "Show close button on carousel"
       big_carousel_cookie_lifespan: "Remember dismissal for"
       big_carousel_cookie_name: "Cookie name for dismissal state"
+      big_carousel_show_on_homepage: "Show carousel on home page routes (latest, top, new, unread, custom)"
   close_button:
     title: "Close carousel"
-  theme_metadata:
-    description: "It's a big carousel"
-    settings:
-      big_carousel_show_on_homepage: "Show carousel on home page routes (latest, top, new, unread, custom)"
