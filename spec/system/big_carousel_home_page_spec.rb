@@ -144,4 +144,32 @@ RSpec.describe "Big Carousel on Home Page", type: :system do
       expect(page).to have_css(".custom-big-carousel.mobile-arrows-enabled")
     end
   end
+
+  context "desktop arrows functionality" do
+    before do
+      theme.update_setting(:big_carousel_show_on_homepage, true)
+      theme.update_setting(:plugin_outlet, "below-site-header")
+      theme.update_setting(:big_carousel_slides, '[{"link": "https://example.com", "headline": "Test Headline", "text": "Test text", "text_bg": "#000", "button_text": "Click here", "image_url": "", "slide_bg_color": "#333", "slide_type": "slide"}]')
+    end
+
+    it "does not have desktop-arrows-always-visible class when desktop arrows always visible is disabled" do
+      theme.update_setting(:big_carousel_desktop_arrows_always_visible, false)
+      visit "/latest"
+      expect(page).to have_css(".custom-big-carousel")
+      expect(page).not_to have_css(".custom-big-carousel.desktop-arrows-always-visible")
+    end
+
+    it "has desktop-arrows-always-visible class when desktop arrows always visible is enabled" do
+      theme.update_setting(:big_carousel_desktop_arrows_always_visible, true)
+      visit "/latest"
+      expect(page).to have_css(".custom-big-carousel.desktop-arrows-always-visible")
+    end
+
+    it "can have both mobile and desktop arrow classes enabled simultaneously" do
+      theme.update_setting(:big_carousel_mobile_arrows, true)
+      theme.update_setting(:big_carousel_desktop_arrows_always_visible, true)
+      visit "/latest"
+      expect(page).to have_css(".custom-big-carousel.mobile-arrows-enabled.desktop-arrows-always-visible")
+    end
+  end
 end

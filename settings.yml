@@ -48,3 +48,7 @@ big_carousel_cookie_name:
 big_carousel_mobile_arrows:
   type: bool
   default: false
+
+big_carousel_desktop_arrows_always_visible:
+  type: bool
+  default: false

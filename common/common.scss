@@ -16,12 +16,20 @@
   position: relative;
   min-height: $big-carousel-min-height;
 
-  // CSS custom property for mobile arrows display
+  // CSS custom properties for arrow display control
   --big-carousel-mobile-arrows-display: none;
+  --big-carousel-desktop-arrows-display: none;
+  --big-carousel-desktop-arrows-hover-display: flex;
 
   // Enable mobile arrows when class is present
   &.mobile-arrows-enabled {
     --big-carousel-mobile-arrows-display: flex;
+  }
+
+  // Enable desktop arrows always visible when class is present
+  &.desktop-arrows-always-visible {
+    --big-carousel-desktop-arrows-display: flex;
+    --big-carousel-desktop-arrows-hover-display: flex;
   }
 
   .big-carousel-close-container {
@@ -90,7 +98,7 @@
 
   .custom-big-carousel-next,
   .custom-big-carousel-prev {
-    display: none;
+    display: var(--big-carousel-desktop-arrows-display, none);
     position: absolute;
     top: 0;
     bottom: 0;
@@ -109,7 +117,7 @@
   &:hover {
     .custom-big-carousel-next,
     .custom-big-carousel-prev {
-      display: flex;
+      display: var(--big-carousel-desktop-arrows-hover-display, flex);
     }
   }
 

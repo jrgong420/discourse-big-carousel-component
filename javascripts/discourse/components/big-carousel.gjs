@@ -88,6 +88,9 @@ export default class BigCarousel extends Component {
     if (settings.big_carousel_mobile_arrows) {
       classes += " mobile-arrows-enabled";
     }
+    if (settings.big_carousel_desktop_arrows_always_visible) {
+      classes += " desktop-arrows-always-visible";
+    }
     return classes;
   }
 
