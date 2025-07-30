@@ -392,11 +392,19 @@ export default class BigCarousel extends Component {
         mouseDrag: true,
         touch: true,
         autoplay: false, // Disable autoplay for now
+        preventScrollOnTouch: 'force', // Fix passive event listener issue - forces non-passive listeners
+        speed: settings.big_carousel_speed || 300,
+        loop: true, // Enable looping for better UX
+        swipeAngle: 30, // Allow more lenient swipe angle for better mobile UX
+        nested: false, // Ensure proper touch handling
       });
 
       // Set up custom navigation after successful initialization
       this.setupCustomNavigation();
-      console.log('Carousel slider initialized successfully');
+      console.log('Carousel slider initialized successfully', {
+        hasGoToMethod: typeof this.sliderInstance.goTo === 'function',
+        sliderInfo: this.sliderInstance.getInfo ? this.sliderInstance.getInfo() : 'No getInfo method'
+      });
     } catch (error) {
       console.error('Error initializing carousel slider:', error);
 
@@ -414,29 +422,56 @@ export default class BigCarousel extends Component {
 
   // Set up custom navigation since we disabled tiny-slider's built-in controls
   setupCustomNavigation() {
-    if (!this.sliderInstance) return;
+    if (!this.sliderInstance) {
+      console.warn('Slider instance not available for navigation setup');
+      return;
+    }
 
     const carouselId = this.carouselId;
     const prevButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-prev`);
     const nextButton = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-next`);
     const navContainer = document.querySelector(`[data-carousel-id="${carouselId}"].custom-big-carousel-nav`);
 
-    // Set up prev button
+    // Set up prev button with improved error handling
     if (prevButton) {
-      prevButton.addEventListener('click', () => {
+      prevButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
-          this.sliderInstance.goTo('prev');
+          try {
+            this.sliderInstance.goTo('prev');
+            console.log('Navigated to previous slide');
+          } catch (error) {
+            console.error('Error navigating to previous slide:', error);
+          }
+        } else {
+          console.warn('Slider instance or goTo method not available');
         }
       });
+      console.log('Previous button navigation set up');
+    } else {
+      console.warn('Previous button not found for carousel:', carouselId);
     }
 
-    // Set up next button
+    // Set up next button with improved error handling
     if (nextButton) {
-      nextButton.addEventListener('click', () => {
+      nextButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (this.sliderInstance && typeof this.sliderInstance.goTo === 'function') {
-          this.sliderInstance.goTo('next');
+          try {
+            this.sliderInstance.goTo('next');
+            console.log('Navigated to next slide');
+          } catch (error) {
+            console.error('Error navigating to next slide:', error);
+          }
+        } else {
+          console.warn('Slider instance or goTo method not available');
         }
       });
+      console.log('Next button navigation set up');
+    } else {
+      console.warn('Next button not found for carousel:', carouselId);
     }
 
     // Set up navigation dots

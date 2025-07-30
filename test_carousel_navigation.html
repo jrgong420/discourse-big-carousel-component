@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carousel Navigation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .custom-big-carousel {
+            position: relative;
+            min-height: 300px;
+            background: #333;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .custom-big-carousel-prev,
+        .custom-big-carousel-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 15px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 18px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .custom-big-carousel-prev:hover,
+        .custom-big-carousel-next:hover {
+            background: rgba(0,0,0,0.8);
+        }
+        
+        .custom-big-carousel-prev {
+            left: 10px;
+        }
+        
+        .custom-big-carousel-next {
+            right: 10px;
+        }
+        
+        .tns-outer {
+            position: relative;
+            height: 300px;
+        }
+        
+        .tns-slider {
+            height: 100%;
+        }
+        
+        .tns-item {
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .slide-1 { background: linear-gradient(45deg, #ff6b6b, #ee5a24); }
+        .slide-2 { background: linear-gradient(45deg, #4834d4, #686de0); }
+        .slide-3 { background: linear-gradient(45deg, #00d2d3, #01a3a4); }
+        
+        .test-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #007cba;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .test-button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #005a87;
+        }
+        
+        .error {
+            color: #d63031;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #00b894;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Carousel Navigation Test</h1>
+        
+        <div class="test-info">
+            <h3>Test Instructions:</h3>
+            <ol>
+                <li>Click the left/right arrow buttons to test navigation</li>
+                <li>On mobile devices, try swiping left/right</li>
+                <li>Open browser console to check for errors</li>
+                <li>Look for "Unable to preventDefault inside passive event listener" errors</li>
+            </ol>
+        </div>
+        
+        <div class="custom-big-carousel" data-carousel-id="test-carousel">
+            <div class="custom-big-carousel-prev" data-carousel-id="test-carousel">
+                &#8249;
+            </div>
+            <div class="custom-big-carousel-next" data-carousel-id="test-carousel">
+                &#8250;
+            </div>
+            
+            <div id="carousel-container">
+                <div class="slide-1">Slide 1</div>
+                <div class="slide-2">Slide 2</div>
+                <div class="slide-3">Slide 3</div>
+            </div>
+        </div>
+        
+        <div class="test-results">
+            <h3>Test Controls:</h3>
+            <button class="test-button" onclick="testPrevNavigation()">Test Previous</button>
+            <button class="test-button" onclick="testNextNavigation()">Test Next</button>
+            <button class="test-button" onclick="checkConsoleErrors()">Check Console</button>
+            <div id="test-output"></div>
+        </div>
+    </div>
+
+    <!-- Include tiny-slider library -->
+    <script src="assets/tiny-slider.js"></script>
+    
+    <script>
+        let sliderInstance = null;
+        let testOutput = document.getElementById('test-output');
+        
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = isError ? 'error' : 'success';
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            testOutput.appendChild(div);
+        }
+        
+        // Initialize carousel with our fixed configuration
+        function initializeCarousel() {
+            try {
+                const container = document.getElementById('carousel-container');
+                
+                if (!container) {
+                    log('Container not found', true);
+                    return;
+                }
+                
+                // Use the same configuration as our fix
+                sliderInstance = tns({
+                    container: container,
+                    items: 1,
+                    controls: false,
+                    nav: false,
+                    mouseDrag: true,
+                    touch: true,
+                    autoplay: false,
+                    preventScrollOnTouch: 'force', // Our fix for passive event listener issue
+                    speed: 300,
+                    loop: true,
+                    swipeAngle: 30,
+                    nested: false,
+                });
+                
+                setupCustomNavigation();
+                log('Carousel initialized successfully');
+                
+            } catch (error) {
+                log('Error initializing carousel: ' + error.message, true);
+            }
+        }
+        
+        // Setup custom navigation (same as our fix)
+        function setupCustomNavigation() {
+            if (!sliderInstance) {
+                log('Slider instance not available for navigation setup', true);
+                return;
+            }
+            
+            const prevButton = document.querySelector('[data-carousel-id="test-carousel"].custom-big-carousel-prev');
+            const nextButton = document.querySelector('[data-carousel-id="test-carousel"].custom-big-carousel-next');
+            
+            if (prevButton) {
+                prevButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (sliderInstance && typeof sliderInstance.goTo === 'function') {
+                        try {
+                            sliderInstance.goTo('prev');
+                            log('Navigated to previous slide');
+                        } catch (error) {
+                            log('Error navigating to previous slide: ' + error.message, true);
+                        }
+                    } else {
+                        log('Slider instance or goTo method not available', true);
+                    }
+                });
+                log('Previous button navigation set up');
+            } else {
+                log('Previous button not found', true);
+            }
+            
+            if (nextButton) {
+                nextButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (sliderInstance && typeof sliderInstance.goTo === 'function') {
+                        try {
+                            sliderInstance.goTo('next');
+                            log('Navigated to next slide');
+                        } catch (error) {
+                            log('Error navigating to next slide: ' + error.message, true);
+                        }
+                    } else {
+                        log('Slider instance or goTo method not available', true);
+                    }
+                });
+                log('Next button navigation set up');
+            } else {
+                log('Next button not found', true);
+            }
+        }
+        
+        // Test functions
+        function testPrevNavigation() {
+            if (sliderInstance && typeof sliderInstance.goTo === 'function') {
+                try {
+                    sliderInstance.goTo('prev');
+                    log('Manual previous navigation test successful');
+                } catch (error) {
+                    log('Manual previous navigation test failed: ' + error.message, true);
+                }
+            } else {
+                log('Cannot test navigation - slider not initialized', true);
+            }
+        }
+        
+        function testNextNavigation() {
+            if (sliderInstance && typeof sliderInstance.goTo === 'function') {
+                try {
+                    sliderInstance.goTo('next');
+                    log('Manual next navigation test successful');
+                } catch (error) {
+                    log('Manual next navigation test failed: ' + error.message, true);
+                }
+            } else {
+                log('Cannot test navigation - slider not initialized', true);
+            }
+        }
+        
+        function checkConsoleErrors() {
+            log('Check browser console for any "preventDefault" or "passive event listener" errors');
+            log('If no such errors appear, the touch event fix is working');
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            setTimeout(initializeCarousel, 100);
+        });
+    </script>
+</body>
+</html>

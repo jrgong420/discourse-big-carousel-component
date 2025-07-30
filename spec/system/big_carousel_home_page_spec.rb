@@ -122,6 +122,55 @@ RSpec.describe "Big Carousel on Home Page", type: :system do
       expect(page).to have_text("First slide")
       expect(page).to have_link("Click 1", href: "https://example1.com")
     end
+
+    it "displays arrow navigation buttons" do
+      visit "/latest"
+      expect(page).to have_css(".custom-big-carousel-prev")
+      expect(page).to have_css(".custom-big-carousel-next")
+    end
+
+    it "can navigate between slides using arrow buttons", js: true do
+      visit "/latest"
+
+      # Wait for carousel to initialize
+      expect(page).to have_css(".custom-big-carousel-slide", wait: 5)
+      expect(page).to have_text("Slide 1")
+
+      # Click next button
+      find(".custom-big-carousel-next").click
+      sleep(1) # Allow time for transition
+
+      # Should now show slide 2
+      expect(page).to have_text("Slide 2")
+
+      # Click previous button
+      find(".custom-big-carousel-prev").click
+      sleep(1) # Allow time for transition
+
+      # Should be back to slide 1
+      expect(page).to have_text("Slide 1")
+    end
+
+    it "initializes slider without console errors", js: true do
+      visit "/latest"
+
+      # Wait for carousel to initialize
+      expect(page).to have_css(".custom-big-carousel-slide", wait: 5)
+
+      # Check that no JavaScript errors occurred during initialization
+      logs = page.driver.browser.logs.get(:browser)
+      error_logs = logs.select { |log| log.level == "SEVERE" }
+
+      # Filter out unrelated errors and focus on carousel-related ones
+      carousel_errors = error_logs.select do |log|
+        log.message.include?("carousel") ||
+        log.message.include?("slider") ||
+        log.message.include?("preventDefault") ||
+        log.message.include?("passive")
+      end
+
+      expect(carousel_errors).to be_empty, "Found carousel-related JavaScript errors: #{carousel_errors.map(&:message)}"
+    end
   end
 
   context "mobile arrows functionality" do
