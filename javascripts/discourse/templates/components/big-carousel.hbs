@@ -1,0 +1,149 @@
+{{#if this.shouldDisplay}}
+  <div class={{this.carouselClasses}} data-carousel-id={{this.carouselId}}>
+    {{#if settings.big_carousel_dismissible}}
+      <div class="big-carousel-close-container">
+        <DButton
+          @icon="circle-xmark"
+          @action={{this.closeCarousel}}
+          @title={{i18n "close_button.title"}}
+          class="btn-transparent big-carousel-close-btn"
+        />
+      </div>
+    {{/if}}
+
+    <div class="custom-big-carousel-prev" data-carousel-id={{this.carouselId}}>
+      {{d-icon "chevron-left"}}
+    </div>
+
+    <div class="custom-big-carousel-next" data-carousel-id={{this.carouselId}}>
+      {{d-icon "chevron-right"}}
+    </div>
+
+    <div class="custom-big-carousel-slides" data-carousel-id={{this.carouselId}}>
+      {{#each this.bigStaticSlides as |bs|}}
+        <div class="custom-big-carousel-slide" style={{htmlSafe (concat "background:" bs.slide_bg_color)}}>
+          {{#if bs.image_url}}
+            <div class="custom-big-carousel-image" style={{htmlSafe (concat "background-image: url(" bs.image_url ")")}}>
+            </div>
+          {{/if}}
+
+          <div class="custom-big-carousel-content">
+            <div class="custom-big-carousel-main-content">
+              {{#if (this.isExternalLink bs.link)}}
+                <a 
+                  href={{bs.link}} 
+                  class="custom-big-carousel-text-link"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <h2>
+                    {{bs.headline}}
+                  </h2>
+
+                  <p>
+                    {{bs.text}}
+                  </p>
+                </a>
+              {{else}}
+                <a 
+                  href={{bs.link}} 
+                  class="custom-big-carousel-text-link"
+                >
+                  <h2>
+                    {{bs.headline}}
+                  </h2>
+
+                  <p>
+                    {{bs.text}}
+                  </p>
+                </a>
+              {{/if}}
+
+              {{#if (and bs.button_text bs.link)}}
+                {{#if (this.isExternalLink bs.link)}}
+                  <a 
+                    href={{bs.link}} 
+                    class="btn btn-primary btn-text"
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    {{bs.button_text}}
+                  </a>
+                {{else}}
+                  <a 
+                    href={{bs.link}} 
+                    class="btn btn-primary btn-text"
+                  >
+                    {{bs.button_text}}
+                  </a>
+                {{/if}}
+              {{/if}}
+            </div>
+          </div>
+        </div>
+      {{/each}}
+
+      {{#each this.bigUserSlides as |bs|}}
+        <div class="custom-big-carousel-slide" style={{htmlSafe (concat "background:" bs.slide_bg_color)}}>
+          {{#if bs.image_url}}
+            <div class="custom-big-carousel-image" style={{htmlSafe (concat "background-image: url(" bs.image_url ")")}}>
+            </div>
+          {{/if}}
+
+          <div class="custom-big-carousel-content">
+            <div class="custom-big-carousel-main-content">
+              <div style={{htmlSafe (concat "background:" bs.text_bg)}}>
+                <h3>
+                  <a href="/u/{{bs.user_info.user.username}}">
+                    {{avatar bs.user_info.user imageSize="huge"}}
+                    {{bs.user_info.user.username}}
+                  </a>
+                </h3>
+              </div>
+
+              <p class="bs-main-text">
+                {{bs.text}}
+              </p>
+
+              {{#if (and bs.button_text bs.link)}}
+                <a
+                  href="/u/{{bs.link}}"
+                  class="btn btn-primary btn-text"
+                >
+                  {{bs.button_text}}
+                </a>
+              {{/if}}
+
+              <div class="bc-user-posts">
+                <h4>{{i18n (themePrefix "recent_posts")}}</h4>
+
+                {{#each bs.user_activity as |activity|}}
+                  <div class="bc-user-post">
+                    <a href="/t/{{activity.topic_id}}">
+                      <div class="bc-user-post-title">
+                        {{activity.title}}
+                      </div>
+                      <p class="bc-user-post-excerpt">
+                        {{html-safe activity.excerpt}}
+                      </p>
+                    </a>
+                  </div>
+                {{/each}}
+              </div>
+            </div>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="custom-big-carousel-nav" data-carousel-id={{this.carouselId}}>
+      {{#each this.bigStaticSlides}}
+        <div class="custom-big-carousel-nav-item"></div>
+      {{/each}}
+
+      {{#each this.bigUserSlides}}
+        <div class="custom-big-carousel-nav-item"></div>
+      {{/each}}
+    </div>
+  </div>
+{{/if}}
