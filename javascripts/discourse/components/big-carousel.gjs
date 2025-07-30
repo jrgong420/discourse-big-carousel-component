@@ -82,7 +82,24 @@ export default class BigCarousel extends Component {
 
   @discourseComputed("router.currentRouteName")
   shouldDisplay(currentRouteName) {
-    return currentRouteName === "discovery.categories";
+    // Always show on categories page (original behavior)
+    if (currentRouteName === "discovery.categories") {
+      return true;
+    }
+
+    // Show on home page routes if the setting is enabled
+    if (settings.big_carousel_show_on_homepage) {
+      const homePageRoutes = [
+        "discovery.latest",
+        "discovery.top",
+        "discovery.new",
+        "discovery.unread",
+        "discovery.custom"
+      ];
+      return homePageRoutes.includes(currentRouteName);
+    }
+
+    return false;
   }
 
   didInsertElement() {

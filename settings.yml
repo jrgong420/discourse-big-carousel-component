@@ -15,6 +15,10 @@ big_carousel_speed:
   type: integer
   default: 300
 
+big_carousel_show_on_homepage:
+  type: bool
+  default: false
+
 plugin_outlet:
   type: enum
   default: below-site-header
