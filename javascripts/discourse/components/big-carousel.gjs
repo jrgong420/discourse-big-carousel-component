@@ -70,6 +70,15 @@ export default class BigCarousel extends Component {
     }
   }
 
+  clearDismissalState() {
+    // Clear the dismissal state when the dismissible feature is disabled
+    this.carouselClosed = false;
+    cookie("big_carousel_closed", "", {
+      expires: new Date(0), // Expire immediately
+      path: "/"
+    });
+  }
+
   ensureSlider() {
     // Destroy existing slider instance if it exists
     if (this.sliderInstance && typeof this.sliderInstance.destroy === 'function') {
@@ -151,8 +160,8 @@ export default class BigCarousel extends Component {
 
   @discourseComputed("router.currentRouteName", "carouselClosed")
   shouldDisplay(currentRouteName, carouselClosed) {
-    // Don't show if carousel has been closed
-    if (carouselClosed) {
+    // Don't show if carousel has been closed AND the dismissible feature is enabled
+    if (settings.big_carousel_dismissible && carouselClosed) {
       return false;
     }
 
@@ -179,6 +188,11 @@ export default class BigCarousel extends Component {
   didInsertElement() {
     super.didInsertElement(...arguments);
     this.appEvents.on("page:changed", this, "ensureSlider");
+
+    // Clear dismissal state if dismissible feature is disabled
+    if (!settings.big_carousel_dismissible && this.carouselClosed) {
+      this.clearDismissalState();
+    }
   }
 
   willDestroyElement() {
